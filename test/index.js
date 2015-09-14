@@ -4,10 +4,15 @@ var
 
 module.exports = {
 	setup: function() {
-		var options = grunt.file.readJSON('./test/.conf');
-		console.log(options);
+		var conf = grunt.file.readJSON('./test/.conf');
 
-		contentfulStatic.config(options);
+		contentfulStatic.config({
+			dest: 'test/.tmp/contentful.json',
+			space: conf.space,
+			accessToken: conf.accessToken,
+			// secure: 'true',
+  		// host: 'cdn.contentful.com'
+		});
 	},
 	run: function(callback) {
 		grunt.log.writeln('running contentfulStatic.sync');

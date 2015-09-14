@@ -1,7 +1,4 @@
 {
-	"dest": "test/contentful.json",
   "space": "SPACE_ID",
-  "accessToken": "ACCESS_TOKEN",
-  "secure": "true",
-  "host": "cdn.contentful.com"
+  "accessToken": "ACCESS_TOKEN"
 }
