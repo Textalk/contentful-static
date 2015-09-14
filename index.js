@@ -31,7 +31,7 @@ module.exports = (function() {
 
 	var writeToFile = function(callback) {
 		var filename = options.dest;
-		var filepath = path.resolve(__dirname, filename);
+		var filepath = process.cwd() + '/' + filename;
 		var directory = path.dirname(filepath);
 		var contents = JSON.stringify(db, null, 2);
 		
@@ -60,7 +60,7 @@ module.exports = (function() {
 
 		sync: function( callback) {
 			var client = contentful.createClient(options.apiconfig);
-
+			
 			client.contentTypes().then( function(response) {
 				db._sys.contentTypes = response;
 				for (var i = 0; i < response.length; i++) {

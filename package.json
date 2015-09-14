@@ -9,7 +9,9 @@
   "author": "Erik Edhagen <erikedhagen@gmail.com>",
   "license": "ISC",
   "devDependencies": {
-    "grunt": "^0.4.5"
+    "fs": "0.0.2",
+    "grunt": "^0.4.5",
+    "path": "^0.12.7"
   },
   "dependencies": {
     "contentful": "^1.1.5",
