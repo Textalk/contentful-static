@@ -36,15 +36,19 @@ module.exports = (function() {
 		var contents = JSON.stringify(db, null, 2);
 		
 		mkdirp(directory, function(err) {
-			if(err) return console.log('mkdirp', err);
+			if(err) {
+				callback(err);
+				return console.log('mkdirp', err);
+			}
 			
 			try {
 				fs.writeFileSync(filepath, contents, 'utf8');
 			}
 			catch (err) {
+				callback(err);
 				return console.log('writeFileSync failed', err);
 			}
-			callback(true);
+			callback();
 		});
 	}
 
