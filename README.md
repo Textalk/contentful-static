@@ -1,11 +1,11 @@
 # README #
 
-### What it's for ###
+## What it's for ##
 Save data from a Contentful space to a local JSON file
 
-### How to use it ###
+## How to use it ##
 
-### Install with NPM ###
+### 1. Install with NPM ###
 
 ```
 #!javascript
@@ -13,7 +13,7 @@ Save data from a Contentful space to a local JSON file
 npm install contentful-static --save-dev
 ```
 
-### Include ###
+### 2. Include ###
 
 ```
 #!javascript
@@ -21,7 +21,7 @@ npm install contentful-static --save-dev
 var contentfulStatic = require('contentful-static');
 ```
 
-### Configure ###
+### 3. Configure ###
 
 ```
 #!javascript
@@ -36,7 +36,7 @@ contentfulStatic.config({
 });
 ```
 
-### Run ###
+### 4. Run ###
 
 ```
 #!javascript
