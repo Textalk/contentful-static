@@ -7,8 +7,9 @@ Save data from a Contentful space to a local JSON file
 
 ### 1. Install with NPM ###
 
+
 ```
-#!javascript
+#!shell
 
 npm install contentful-static --save-dev
 ```
