@@ -1,0 +1,19 @@
+{
+  "browser": true,
+  "globalstrict": true,
+  "node": true,
+  "proto": true,
+  "quotmark": "single",
+  "strict": true,
+  "trailing": true,
+  "unused": true,
+  "latedef": "nofunc",
+  "predef": [
+    "_",
+    "assert",
+    "buster",
+    "client",
+    "refute",
+    "util"
+  ]
+}

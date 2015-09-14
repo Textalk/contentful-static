@@ -1,0 +1,18 @@
+{
+  "name": "contentful-static",
+  "version": "1.0.0",
+  "description": "Save data from a Contentful space to a local JSON file",
+  "main": "index.js",
+  "scripts": {
+    "test": "grunt --gruntfile test/Gruntfile.js"
+  },
+  "author": "Erik Edhagen <erikedhagen@gmail.com>",
+  "license": "ISC",
+  "devDependencies": {
+    "grunt": "^0.4.5"
+  },
+  "dependencies": {
+    "contentful": "^1.1.5",
+    "mkdirp": "^0.5.1"
+  }
+}
