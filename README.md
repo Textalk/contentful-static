@@ -5,7 +5,7 @@ Save data from a Contentful space to a local JSON file
 
 ### How to use it ###
 
-1. Install with NPM
+### Install with NPM ###
 
 ```
 #!javascript
@@ -13,15 +13,19 @@ Save data from a Contentful space to a local JSON file
 npm install contentful-static --save-dev
 ```
 
-2. Add Javascript
+### Include ###
 
 ```
 #!javascript
 
-// Include
 var contentfulStatic = require('contentful-static');
+```
 
-// Configure
+### Configure ###
+
+```
+#!javascript
+
 contentfulStatic.config({
     // Destination path to save JSON data in (relative to app root):
     dest: 'src/data/contentful.json',
@@ -30,8 +34,13 @@ contentfulStatic.config({
     // Contentful Access Token
     accessToken: '5fdae8a3myacc3sst0ken573962'
 });
+```
 
-// Run
+### Run ###
+
+```
+#!javascript
+
 contentfulStatic.sync(function(err) {
     if(err) {
         console.log('contentful-static: data could not be synced');
