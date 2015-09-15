@@ -1,3 +1,5 @@
 .tmp
 npm-debug.log
 .conf
+node_modules
+
