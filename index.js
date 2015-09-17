@@ -165,6 +165,9 @@ module.exports = (function() {
 			// console.log(toRender.map(function(e) {
 			//   return e.name + ' ' + e.contentType;
 			// }));
+			var debugTemplate = function(e) {
+				return '<h4>No template found</h4><pre>' + JSON.stringify(o, undefined, 2) + '</pre>';
+			};
 
 
 			// Awesome! Let's render them, one at a time and include the rendered html in the context
@@ -179,7 +182,19 @@ module.exports = (function() {
 			      entries: entries,
 			      includes: includes,
 			      contentTypes: contentTypes,
-			      debug: function(obj) { return JSON.stringify(obj, undefined, 2); }
+			      debug: function(obj) { return JSON.stringify(obj, undefined, 2); },
+						include: function(obj) {
+							if (Array.isArray(obj)) {
+								return obj.map(function(e) {
+									if (e && e.sys) {
+										return includes[e.sys.id] || debugTemplate(e);
+									}
+									return debugTemplate(e);
+								}).join('\n');
+							} else if (obj.sys) {
+								return includes[e.sys.id] || debugTemplate(obj);
+							}
+						}
 			    },
 			    function(err, html) {
 			      if (err) {
