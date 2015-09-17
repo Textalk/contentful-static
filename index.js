@@ -166,7 +166,7 @@ module.exports = (function() {
 			//   return e.name + ' ' + e.contentType;
 			// }));
 			var debugTemplate = function(e) {
-				return '<h4>No template found</h4><pre>' + JSON.stringify(o, undefined, 2) + '</pre>';
+				return '<h4>No template found</h4><pre>' + JSON.stringify(e, undefined, 2) + '</pre>';
 			};
 
 
