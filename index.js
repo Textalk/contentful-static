@@ -62,7 +62,7 @@ module.exports = (function() {
 
 		config: function( optionsObject ) {
 			options.templates = optionsObject.templates || options.templates;
-			options.enginge = optionsObject.engine || options.engine;
+			options.engine = optionsObject.engine || options.engine;
 			options.apiconfig.space = optionsObject.space || options.apiconfig.space;
 			options.apiconfig.accessToken = optionsObject.accessToken || options.apiconfig.accessToken;
 			options.apiconfig.secure = optionsObject.secure || options.apiconfig.secure;
