@@ -174,6 +174,10 @@ module.exports = (function() {
 			// of each so that they can in turn include it themselves.
 			var render = function(entryObj, includes) {
 			  var deferred = q.defer();
+			  var nunjucks = require('nunjucks');
+			  consolidate.requires.nunjucks = nunjucks.configure(options.templates, {
+			  	noCache: true
+			  });
 			  consolidate[options.engine](
 			    path.join(options.templates, entryObj.contentType + '.html'),
 			    {
