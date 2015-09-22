@@ -135,18 +135,23 @@ module.exports = (function() {
 
 			// Find out order to render in.
 			var recurse = function(obj, list, contentTypes) {
-			  // Render children first
-			  if (Array.isArray(obj)) {
-			    obj.forEach(function(item) {
-			      recurse(item, list, contentTypes);
-			    });
-			  } else if (typeof obj === 'object') {
-			    Object.keys(obj).forEach(function(k) {
-			      if (k !== '_sys' && k !== 'sys') {
-			        recurse(obj[k], list, contentTypes);
-			      }
-			    });
-			  }
+				// Render children first
+				try {
+					if (Array.isArray(obj)) {
+						obj.forEach(function(item) {
+							recurse(item, list, contentTypes);
+						});
+					} else if (typeof obj === 'object' && obj != null) {
+						Object.keys(obj).forEach(function(k) {
+							if (k !== '_sys' && k !== 'sys') {
+								recurse(obj[k], list, contentTypes);
+							}
+						});
+					}
+				}
+				catch (err) {
+					console.log(err);
+				}
 
 			  // Then render current entry, if its an entry
 			  // It's an entry to us if it has a sys.contentType
