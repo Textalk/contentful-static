@@ -201,7 +201,7 @@ module.exports = (function() {
 									return debugTemplate(e);
 								}).join('\n');
 							} else if (obj.sys) {
-								return includes[e.sys.id] || debugTemplate(obj);
+								return includes[obj.sys.id] || debugTemplate(obj);
 							}
 						}
 			    },
