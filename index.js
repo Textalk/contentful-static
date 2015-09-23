@@ -195,10 +195,11 @@ module.exports = (function() {
 						}
 					};
 
+					// Try a nested path
 					var tmp = entryObj.contentType.split('-');
 					tmp[tmp.length - 1] = tmp[tmp.length - 1] + '.html';
-					var tmpl = path.join.apply(tmp);
-					if (exists(path.join(options.templates,tmpl))) {
+					var tmpl = path.join.apply(path, tmp);
+					if (!exists(path.join(options.templates,tmpl))) {
 						tmpl = entryObj.contentType + '.html';
 					}
 
