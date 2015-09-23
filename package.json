@@ -8,11 +8,6 @@
   },
   "author": "Erik Edhagen <erikedhagen@gmail.com>",
   "license": "ISC",
-  "devDependencies": {
-    "fs": "0.0.2",
-    "grunt": "^0.4.5",
-    "path": "^0.12.7"
-  },
   "dependencies": {
     "chalk": "^1.1.1",
     "consolidate": "^0.13.1",

@@ -15,14 +15,6 @@ module.exports = (function() {
 		byId: {}
 	};
 
-	var db = {
-		_sys: {
-			contentTypes: [],
-			entries: [],
-			assets: []
-		}
-	};
-
 	var options = {
 		engine: 'nunjucks',
 		templates: 'templates',
@@ -79,32 +71,44 @@ module.exports = (function() {
 		sync: function(callback) {
 			var client = contentful.createClient(options.apiconfig);
 
-			var promise = client.contentTypes().then( function(response) {
-				db._sys.contentTypes = response;
-				for (var i = 0; i < response.length; i++) {
-					var type = response[i];
-					contentTypes.byId[type.sys.id] = type.name;
-					db._sys.contentTypes[type.sys.id] = type;
-					db[type.name] = [];
-				}
-				return client.entries().then( function(response) {
-					db._sys.entries = response;
-					for (var i = 0; i < db._sys.entries.length; i++) {
-						var entry = db._sys.entries[i];
-						var typeName = contentTypes.byId[entry.sys.contentType.sys.id];
-						db[typeName].push(entry);
-					}
+			var db = {
+				contentTypes: [],
+				entries: {},
+				space: {}
+			};
 
-					// if (options.dest) {
-					// 	return writeToFile().then(function() { return db; });
-					// }
+			var promise = q.all([
+				client.contentTypes(),
+				client.space()
+			]).then( function(response) {
+				var contentTypes = response[0];
+				var space = response[1];
+
+				db.space = space;
+				db.contentTypes = contentTypes;
+
+				// Loop over all locales and fetch them one at a time
+				// FIXME: Option for exactly which I like to fetch.
+				var queries = [];
+				space.locales.forEach(function(locale) {
+					queries.push(client.entries({ locale: locale.code}));
+				});
+
+				return q.all(queries).then( function(response) {
+					space.locales.forEach(function(locale, index) {
+						var entries = response[index];
+						db.entries[locale.code] = entries;
+					});
+
 					return db;
 				});
 			});
 
 			if (callback) {
 				promise.then(function(db) {
-					callback(undefined, db);
+					process.nextTick(function() {
+						callback(undefined, db);
+					});
 				}, callback);
 			}
 			return promise;
@@ -119,114 +123,148 @@ module.exports = (function() {
 		 */
 		render: function(content, callback) {
 			// Massage the data for some easy lookup
-			var entries = {};
-			Object.keys(content).filter(function(k) {return k !== '_sys';}).reduce(function(entries, type) {
-			  content[type].forEach(function(entry) {
-			    entries[entry.sys.id] = entry;
-			  });
-			  return entries;
-			}, entries);
-
 			var contentTypes = {};
-			content._sys.contentTypes.reduce(function(types, ct) {
+			content.contentTypes.reduce(function(types, ct) {
 			  types[ct.sys.id] = ct;
 			  return types;
 			}, contentTypes);
 
-			// Find out order to render in.
-			var recurse = function(obj, list, contentTypes) {
-			  // Render children first
-			  if (Array.isArray(obj)) {
-			    obj.forEach(function(item) {
-			      recurse(item, list, contentTypes);
-			    });
-			  } else if (typeof obj === 'object') {
-			    Object.keys(obj).forEach(function(k) {
-			      if (k !== '_sys' && k !== 'sys') {
-			        recurse(obj[k], list, contentTypes);
-			      }
-			    });
-			  }
 
-			  // Then render current entry, if its an entry
-			  // It's an entry to us if it has a sys.contentType
-			  if (obj && obj.sys && obj.sys.contentType) {
-			    list.push({
-			      id: obj.sys.id,
-			      filename: obj.fields && obj.fields.id || obj.sys.id,
-			      name: obj.fields && obj.fields.name || obj.sys.id,
-			      contentType: contentTypes[obj.sys.contentType.sys.id].name,
-			      entry: obj
-			    });
-			  }
-			};
-			var toRender = [];
-			recurse(content, toRender, contentTypes);
-			// console.log(toRender.map(function(e) {
-			//   return e.name + ' ' + e.contentType;
-			// }));
-			var debugTemplate = function(e) {
-				return '<h4>No template found</h4><pre>' + JSON.stringify(e, undefined, 2) + '</pre>';
-			};
+			// FIXME: Only specified locale.
+			var renderPromise = q.all(content.space.locales.map(function(locale) {
+
+				// Massage the data for some easy lookup
+				var entries = {};
+				content.entries[locale.code].reduce(function(entries, entry) {
+				  entries[entry.sys.id] = entry;
+				  return entries;
+				}, entries);
+
+				// Find out order to render in.
+				var recurse = function(obj, list, contentTypes) {
+				  // Render children first
+				  if (Array.isArray(obj)) {
+				    obj.forEach(function(item) {
+				      recurse(item, list, contentTypes);
+				    });
+				  } else if (obj && typeof obj === 'object') {
+				    Object.keys(obj).forEach(function(k) {
+				      if (k !== '_sys' && k !== 'sys') {
+				        recurse(obj[k], list, contentTypes);
+				      }
+				    });
+				  }
+
+				  // Then render current entry, if its an entry
+				  // It's an entry to us if it has a sys.contentType
+				  if (obj && obj.sys && obj.sys.contentType) {
+				    list.push({
+				      id: obj.sys.id,
+				      filename: obj.fields && obj.fields.id || obj.sys.id,
+				      name: obj.fields && obj.fields.name || obj.sys.id,
+				      contentType: contentTypes[obj.sys.contentType.sys.id].name,
+				      entry: obj
+				    });
+				  }
+				};
+				var toRender = [];
+				recurse(content, toRender, contentTypes);
+				var debugTemplate = function(e) {
+					return '<h4>No template found</h4><pre>' + JSON.stringify(e, undefined, 2) + '</pre>';
+				};
 
 
-			// Awesome! Let's render them, one at a time and include the rendered html in the context
-			// of each so that they can in turn include it themselves.
-			var render = function(entryObj, includes) {
-			  var deferred = q.defer();
-			  consolidate[options.engine](
-			    path.join(options.templates, entryObj.contentType + '.html'),
-			    {
-			      entry: entryObj.entry,
-			      content: content,
-			      entries: entries,
-			      includes: includes,
-			      contentTypes: contentTypes,
-			      debug: function(obj) { return JSON.stringify(obj, undefined, 2); },
-						include: function(obj) {
-							if (Array.isArray(obj)) {
-								return obj.map(function(e) {
-									if (e && e.sys) {
-										return includes[e.sys.id] || debugTemplate(e);
-									}
-									return debugTemplate(e);
-								}).join('\n');
-							} else if (obj.sys) {
-								return includes[e.sys.id] || debugTemplate(obj);
-							}
+				// Awesome! Let's render them, one at a time and include the rendered html in the context
+				// of each so that they can in turn include it themselves.
+				var render = function(entryObj, includes) {
+				  var deferred = q.defer();
+
+					// Try figuring out which template to use
+					var exists = function(pth) {
+						try {
+						 	fs.accessSync(pth);
+							return true;
+						} catch (e) {
+							return false;
 						}
-			    },
-			    function(err, html) {
-			      if (err) {
-			        deferred.reject(err);
-			      } else {
-			        deferred.resolve(html);
-			      }
-			    }
-			  );
+					};
 
-			  return deferred.promise;
-			};
+					var tmp = entryObj.contentType.split('-');
+					tmp[tmp.length - 1] = tmp[tmp.length - 1] + '.html';
+					var tmpl = path.join.apply(tmp);
+					if (exists(path.join(options.templates,tmpl))) {
+						tmpl = entryObj.contentType + '.html';
+					}
 
-			var includes = {};
-			var promise = toRender.reduce(function(soFar, e) {
-			  return soFar.then(function(includes) {
-			    return render(e, includes).then(function(html) {
-			      includes[e.id] = html;
-			      return includes;
-			    });
-			  });
-			}, q(includes));
+					// Ok let's check again (TODO: DRY)
+					if (!exists(path.join(options.templates, tmpl))) {
+						console.log('Could not find template ', path.join(options.templates,tmpl));
+						deferred.resolve('<span>(Missing template)</span>');
+					} else {
+					  consolidate[options.engine](
+					    path.join(options.templates, tmpl),
+					    {
+					      entry: entryObj.entry,
+					      content: content,
+					      entries: entries,
+					      includes: includes,
+					      contentTypes: contentTypes,
+					      debug: function(obj) { return JSON.stringify(obj, undefined, 2); },
+								include: function(obj) {
+									if (Array.isArray(obj)) {
+										return obj.map(function(e) {
+											if (e && e.sys) {
+												return includes[e.sys.id] || debugTemplate(e);
+											}
+											return debugTemplate(e);
+										}).join('\n');
+									} else if (obj.sys) {
+										return includes[e.sys.id] || debugTemplate(obj);
+									}
+								}
+					    },
+					    function(err, html) {
+					      if (err) {
+					        deferred.reject(err);
+					      } else {
+					        deferred.resolve(html);
+					      }
+					    }
+					  );
+					}
+				  return deferred.promise;
+				};
+
+				var includes = {};
+				var promise = toRender.reduce(function(soFar, e) {
+				  return soFar.then(function(includes) {
+				    return render(e, includes).then(function(html) {
+				      includes[e.id] = html;
+				      return includes;
+				    });
+				  });
+				}, q(includes));
+
+				return promise;
+			})).then(function(results) {
+				// Re-map the data to each locale
+				var byLocale = {};
+				content.space.locales.forEach(function(l, index) {
+					byLocale[l.code] = results[index];
+				});
+				return byLocale;
+			});
 
 			if (callback) {
-				promise.then(function(includes) {
-					callback(undefined, includes);
+				renderPromise.then(function(includes) {
+					process.nextTick(function() {
+						callback(undefined, includes);
+					});
 				}, callback);
 			}
-			return promise;
+			return renderPromise;
 		}
 	};
-
 
 	return contentfulStatic;
 

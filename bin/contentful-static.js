@@ -64,20 +64,28 @@ if (/\.json$/.test(argv._[0])) {
 }
 
 contentPromise.then(function(content) {
-  return contentfulStatic.render(content).then(function(includes) {
-    // Start churning out pages
-    rimraf.sync(argv._[2]);
-    mkdirp.sync(argv._[2]);
+  console.log(chalk.green('Content fetched'));
+  return contentfulStatic.render(content).then(function(byLocale) {
+    console.log(chalk.green('Pages rendered'));
+    // Clean build dir.
+    var buildDir = argv._[2];
+    rimraf.sync(buildDir);
+    mkdirp.sync(buildDir);
 
-    // TODO: some kind of config of what should be saved to file.
-    Object.keys(content).forEach(function(key) {
-      if (key.indexOf('page-') === 0) {
-        content[key].forEach(function(entry) {
-          var filename = (entry.fields && entry.fields.id) || entry.sys.id;
-          fs.writeFileSync(path.join(argv._[2], filename + '.html'), includes[entry.sys.id]);
-          console.log(chalk.cyan('Wrote ' + filename + '.html'));
-        });
-      }
+    // Start churning out pages by locale
+    Object.keys(byLocale).forEach(function(code) {
+      var includes = byLocale[code];
+
+      // TODO: some kind of config of what should be saved to file.
+      content.entries[code].forEach(function(entry) {
+        if (entry.fields.filepath) {
+          var filepath = path.join(buildDir, code, entry.fields.filepath);
+          mkdirp.sync(path.dirname(filepath));
+          fs.writeFileSync(filepath, includes[entry.sys.id]);
+          console.log(chalk.cyan('Wrote ' + filepath));
+        }
+      });
+
     });
   });
 }).catch(function(err) {
