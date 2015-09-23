@@ -122,6 +122,12 @@ module.exports = (function() {
 		 * @return {Promise} that resolves to an object with id of entry as key and HTML as value.
 		 */
 		render: function(content, callback) {
+			// manually setup nunjucks to not cache templates since consolidate doesn't support this option
+			var nunjucks = require('nunjucks');
+			consolidate.requires.nunjucks = nunjucks.configure(options.templates, {
+				noCache: true
+			});
+
 			// Massage the data for some easy lookup
 			var contentTypes = {};
 			content.contentTypes.reduce(function(types, ct) {
@@ -219,7 +225,7 @@ module.exports = (function() {
 											return debugTemplate(e);
 										}).join('\n');
 									} else if (obj.sys) {
-										return includes[e.sys.id] || debugTemplate(obj);
+										return includes[obj.sys.id] || debugTemplate(obj);
 									}
 								}
 					    },
