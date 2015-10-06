@@ -174,7 +174,7 @@ module.exports = (function() {
 				  }
 				};
 				var toRender = [];
-				recurse(content, toRender, contentTypes);
+				recurse(entries, toRender, contentTypes);
 				var debugTemplate = function(e) {
 					return '<h4>No template found</h4><pre>' + JSON.stringify(e, undefined, 2) + '</pre>';
 				};
