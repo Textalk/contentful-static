@@ -121,12 +121,12 @@ module.exports = (function() {
 		 * @param {Function} callback (optional) a callback function(err, html)
 		 * @return {Promise} that resolves to an object with id of entry as key and HTML as value.
 		 */
-		render: function(content, callback) {
+		render: function(content, before, callback) {
 			// manually setup nunjucks to not cache templates since consolidate doesn't support this option
-			var nunjucks = require('nunjucks');
-			consolidate.requires.nunjucks = nunjucks.configure(options.templates, {
-				noCache: true
-			});
+			
+			// expose consolidate to allow for a custom setup
+			if(before != undefined) before(consolidate);
+
 
 			// Massage the data for some easy lookup
 			var contentTypes = {};
