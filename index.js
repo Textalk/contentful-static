@@ -216,6 +216,9 @@ module.exports = (function() {
 					      entries: entries,
 					      includes: includes,
 					      contentTypes: contentTypes,
+					      globals: {
+					      	locale: locale.code
+					      },
 					      debug: function(obj) { return JSON.stringify(obj, undefined, 2); },
 								include: function(obj) {
 									if (Array.isArray(obj)) {
