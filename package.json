@@ -1,6 +1,6 @@
 {
   "name": "contentful-static",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Save data from a Contentful space to a local JSON file",
   "main": "index.js",
   "scripts": {
