@@ -12,6 +12,7 @@
     "chalk": "^1.1.1",
     "consolidate": "^0.13.1",
     "contentful": "^1.1.5",
+    "merge": "^1.2.0",
     "mkdirp": "^0.5.1",
     "nunjucks": "^2.0.0",
     "q": "^1.4.1",
