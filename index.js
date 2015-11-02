@@ -6,7 +6,8 @@ var
 	chalk = require('chalk'),
 	rimraf = require('rimraf'),
 	consolidate = require('consolidate'),
-	path = require('path');
+	path = require('path'),
+	merge = require('merge');
 
 module.exports = (function() {
 
@@ -23,6 +24,9 @@ module.exports = (function() {
 			accessToken: null,
 			secure: true,
 			host: 'cdn.contentful.com'
+		},
+		context: {
+			// context variables to pass into template rendering 
 		}
 	};
 
@@ -59,6 +63,7 @@ module.exports = (function() {
 			options.apiconfig.accessToken = optionsObject.accessToken || options.apiconfig.accessToken;
 			options.apiconfig.secure = optionsObject.secure || options.apiconfig.secure;
 			options.apiconfig.host = optionsObject.host || options.apiconfig.host;
+			options.context = optionsObject.context || options.context;
 		},
 
 		/**
@@ -69,6 +74,7 @@ module.exports = (function() {
 		 * @return {Promise} a promise that resolves to the content.
 		 */
 		sync: function(callback) {
+
 			var client = contentful.createClient(options.apiconfig);
 
 			var db = {
@@ -194,7 +200,7 @@ module.exports = (function() {
 							return false;
 						}
 					};
-
+					
 					// Try a nested path
 					var tmp = entryObj.contentType.split('-');
 					tmp[tmp.length - 1] = tmp[tmp.length - 1] + '.html';
@@ -208,31 +214,34 @@ module.exports = (function() {
 						console.log('Could not find template ', path.join(options.templates,tmpl));
 						deferred.resolve('<span>(Missing template)</span>');
 					} else {
-					  consolidate[options.engine](
-					    path.join(options.templates, tmpl),
-					    {
-					      entry: entryObj.entry,
-					      content: content,
-					      entries: entries,
-					      includes: includes,
-					      contentTypes: contentTypes,
-					      globals: {
-					      	locale: locale.code
-					      },
-					      debug: function(obj) { return JSON.stringify(obj, undefined, 2); },
-								include: function(obj) {
-									if (Array.isArray(obj)) {
-										return obj.map(function(e) {
-											if (e && e.sys) {
-												return includes[e.sys.id] || debugTemplate(e);
-											}
-											return debugTemplate(e);
-										}).join('\n');
-									} else if (obj.sys) {
-										return includes[obj.sys.id] || debugTemplate(obj);
+						var defaultContext = {
+							entry: entryObj.entry,
+							content: content,
+							entries: entries,
+							includes: includes,
+							contentTypes: contentTypes,
+							globals: {
+								locale: locale.code
+							},
+							debug: function(obj) { 
+								return JSON.stringify(obj, undefined, 2); 
+							},
+							include: function(obj) {
+							if (Array.isArray(obj)) {
+								return obj.map(function(e) {
+									if (e && e.sys) {
+										return includes[e.sys.id] || debugTemplate(e);
 									}
+									return debugTemplate(e);
+								}).join('\n');
+								} else if (obj.sys) {
+									return includes[obj.sys.id] || debugTemplate(obj);
 								}
-					    },
+							}
+						};
+						
+					  consolidate[options.engine](
+					    path.join(options.templates, tmpl), merge.recursive(defaultContext, options.context),
 					    function(err, html) {
 					      if (err) {
 					        deferred.reject(err);
