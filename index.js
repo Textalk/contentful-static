@@ -97,7 +97,8 @@ module.exports = (function() {
 				// FIXME: Option for exactly which I like to fetch.
 				var queries = [];
 				space.locales.forEach(function(locale) {
-					queries.push(client.entries({ locale: locale.code}));
+					// TODO: get unlimited entries by iterating calls. Max entries limit per call is 1000.
+					queries.push(client.entries({ locale: locale.code, limit: 1000}));
 				});
 
 				return q.all(queries).then( function(response) {
