@@ -7,7 +7,36 @@ var
 	rimraf = require('rimraf'),
 	consolidate = require('consolidate'),
 	path = require('path'),
-	merge = require('merge');
+	merge = require('merge'),
+	debuginfo = {
+		renderCount: 0
+	},
+	DEBUGMODE = false;
+
+
+function debug() {
+	if(DEBUGMODE) {
+		console.log(arguments);
+	}
+}
+// check if object exists and throws an error if not
+function checkExistance(testObject, reference, throwException) {
+	reference = 'ref: ' + reference;
+
+	if(typeof testObject === 'string') {
+		debug('checkExistance: Object is a string', testObject, reference);
+		return 'string';
+	}
+	var name = (testObject && testObject.fields && testObject.fields.name) ? testObject.fields.name : 'no name';
+	// console.log(name, reference);
+
+	if(!testObject || typeof testObject === undefined || testObject === null) {
+		var error = new Error('checkExistance failed: Object does not exist. ', testObject, reference);
+		debug(error);
+		return false;
+	}
+	return true;
+}
 
 module.exports = (function() {
 
@@ -26,7 +55,7 @@ module.exports = (function() {
 			host: 'cdn.contentful.com'
 		},
 		context: {
-			// context variables to pass into template rendering 
+			// context variables to pass into template rendering
 		}
 	};
 
@@ -130,14 +159,16 @@ module.exports = (function() {
 		 */
 		render: function(content, before, callback) {
 			// manually setup nunjucks to not cache templates since consolidate doesn't support this option
-			
+
 			// expose consolidate to allow for a custom setup
-			if(before != undefined) before(consolidate);
+			console.log('[contentfulStatic.render] Calling "before" callback...');
+			if(before != undefined) before(consolidate, content);
 
 
 			// Massage the data for some easy lookup
 			var contentTypes = {};
 			content.contentTypes.reduce(function(types, ct) {
+				checkExistance(ct, 'index.js:164');
 			  types[ct.sys.id] = ct;
 			  return types;
 			}, contentTypes);
@@ -145,10 +176,12 @@ module.exports = (function() {
 
 			// FIXME: Only specified locale.
 			var renderPromise = q.all(content.space.locales.map(function(locale) {
+				console.log('[contentfulStatic.render] Traversing entries in locale ' + locale.code + ' ...');
 
 				// Massage the data for some easy lookup
 				var entries = {};
 				content.entries[locale.code].reduce(function(entries, entry) {
+					checkExistance(entry, 'index.js:177');
 				  entries[entry.sys.id] = entry;
 				  return entries;
 				}, entries);
@@ -201,7 +234,12 @@ module.exports = (function() {
 							return false;
 						}
 					};
-					
+
+					// DEBUG log
+					if(entryObj === undefined || typeof entryObj === "string") throw new Error('invalid entryObj at index.js:232');
+					var debugName = entryObj && entryObj.entry.fields && entryObj.entry.fields.name ? entryObj.entry.fields.name : entryObj.entry.sys.id;
+					debug('rendering entry...', debugName);
+
 					// Try a nested path
 					var tmp = entryObj.contentType.split('-');
 					tmp[tmp.length - 1] = tmp[tmp.length - 1] + '.html';
@@ -212,7 +250,7 @@ module.exports = (function() {
 
 					// Ok let's check again (TODO: DRY)
 					if (!exists(path.join(options.templates, tmpl))) {
-						console.log('Could not find template ', path.join(options.templates,tmpl));
+						debug('Could not find template ', path.join(options.templates,tmpl));
 						deferred.resolve('<span>(Missing template)</span>');
 					} else {
 						var defaultContext = {
@@ -224,23 +262,25 @@ module.exports = (function() {
 							globals: {
 								locale: locale.code
 							},
-							debug: function(obj) { 
-								return JSON.stringify(obj, undefined, 2); 
+							debug: function(obj) {
+								return JSON.stringify(obj, undefined, 2);
 							},
 							include: function(obj) {
-							if (Array.isArray(obj)) {
-								return obj.map(function(e) {
-									if (e && e.sys) {
-										return includes[e.sys.id] || debugTemplate(e);
-									}
-									return debugTemplate(e);
-								}).join('\n');
+								checkExistance(obj.sys, 'index.js:262');
+								if(obj == undefined) debug('error: undefined object');
+								if (Array.isArray(obj)) {
+									return obj.map(function(e) {
+										if (e && e.sys) {
+											return includes[e.sys.id] || debugTemplate(e);
+										}
+										return debugTemplate(e);
+									}).join('\n');
 								} else if (obj.sys) {
 									return includes[obj.sys.id] || debugTemplate(obj);
 								}
 							}
 						};
-						
+
 					  consolidate[options.engine](
 					    path.join(options.templates, tmpl), merge.recursive(defaultContext, options.context),
 					    function(err, html) {
@@ -256,8 +296,11 @@ module.exports = (function() {
 				};
 
 				var includes = {};
+				console.log('[contentfulStatic.render]', 'Rendering templates ...');
 				var promise = toRender.reduce(function(soFar, e) {
+					checkExistance(e, 'index.js:294');
 				  return soFar.then(function(includes) {
+				  	debuginfo.renderCount++;
 				    return render(e, includes).then(function(html) {
 				      includes[e.id] = html;
 				      return includes;
@@ -269,6 +312,8 @@ module.exports = (function() {
 			})).then(function(results) {
 				// Re-map the data to each locale
 				var byLocale = {};
+				console.log('[contentfulStatic.render] Rendered ' + debuginfo.renderCount + ' templates.');
+				console.log('[contentfulStatic.render] Remap data to locales.');
 				content.space.locales.forEach(function(l, index) {
 					byLocale[l.code] = results[index];
 				});
