@@ -169,8 +169,8 @@ module.exports = (function() {
 			var contentTypes = {};
 			content.contentTypes.reduce(function(types, ct) {
 				checkExistance(ct, 'index.js:164');
-			  types[ct.sys.id] = ct;
-			  return types;
+				types[ct.sys.id] = ct;
+				return types;
 			}, contentTypes);
 
 
@@ -182,36 +182,41 @@ module.exports = (function() {
 				var entries = {};
 				content.entries[locale.code].reduce(function(entries, entry) {
 					checkExistance(entry, 'index.js:177');
-				  entries[entry.sys.id] = entry;
-				  return entries;
+					entries[entry.sys.id] = entry;
+					return entries;
 				}, entries);
 
 				// Find out order to render in.
-				var recurse = function(obj, list, contentTypes) {
-				  // Render children first
-				  if (Array.isArray(obj)) {
-				    obj.forEach(function(item) {
-				      recurse(item, list, contentTypes);
-				    });
-				  } else if (obj && typeof obj === 'object') {
-				    Object.keys(obj).forEach(function(k) {
-				      if (k !== '_sys' && k !== 'sys') {
-				        recurse(obj[k], list, contentTypes);
-				      }
-				    });
-				  }
+				var recurse = function(obj, list, contentTypes, dupCheck) {
+					dupCheck = dupCheck || {};
 
-				  // Then render current entry, if its an entry
-				  // It's an entry to us if it has a sys.contentType
-				  if (obj && obj.sys && obj.sys.contentType) {
-				    list.push({
-				      id: obj.sys.id,
-				      filename: obj.fields && obj.fields.id || obj.sys.id,
-				      name: obj.fields && obj.fields.name || obj.sys.id,
-				      contentType: contentTypes[obj.sys.contentType.sys.id].name,
-				      entry: obj
-				    });
-				  }
+					// Render children first
+					if (Array.isArray(obj)) {
+						obj.forEach(function(item) {
+							recurse(item, list, contentTypes, dupCheck);
+						});
+					} else if (obj && typeof obj === 'object') {
+						Object.keys(obj).forEach(function(k) {
+							if (k !== '_sys' && k !== 'sys') {
+								recurse(obj[k], list, contentTypes, dupCheck);
+							}
+						});
+					}
+
+					// Then render current entry, if its an entry
+					// It's an entry to us if it has a sys.contentType
+					if (obj && obj.sys && obj.sys.contentType && obj.sys.id) {
+						if (!dupCheck[obj.sys.id]) {
+							list.push({
+								id: obj.sys.id,
+								filename: obj.fields && obj.fields.id || obj.sys.id,
+								name: obj.fields && obj.fields.name || obj.sys.id,
+								contentType: contentTypes[obj.sys.contentType.sys.id].name,
+								entry: obj
+							});
+							dupCheck[obj.sys.id] = true;
+						}
+					}
 				};
 				var toRender = [];
 				recurse(entries, toRender, contentTypes);
@@ -223,7 +228,7 @@ module.exports = (function() {
 				// Awesome! Let's render them, one at a time and include the rendered html in the context
 				// of each so that they can in turn include it themselves.
 				var render = function(entryObj, includes) {
-				  var deferred = q.defer();
+					var deferred = q.defer();
 
 					// Try figuring out which template to use
 					var exists = function(pth) {
@@ -281,31 +286,31 @@ module.exports = (function() {
 							}
 						};
 
-					  consolidate[options.engine](
-					    path.join(options.templates, tmpl), merge.recursive(defaultContext, options.context),
-					    function(err, html) {
-					      if (err) {
-					        deferred.reject(err);
-					      } else {
-					        deferred.resolve(html);
-					      }
-					    }
-					  );
+						consolidate[options.engine](
+							path.join(options.templates, tmpl), merge.recursive(defaultContext, options.context),
+							function(err, html) {
+								if (err) {
+									deferred.reject(err);
+								} else {
+									deferred.resolve(html);
+								}
+							}
+						);
 					}
-				  return deferred.promise;
+					return deferred.promise;
 				};
 
 				var includes = {};
 				console.log('[contentfulStatic.render]', 'Rendering templates ...');
 				var promise = toRender.reduce(function(soFar, e) {
 					checkExistance(e, 'index.js:294');
-				  return soFar.then(function(includes) {
-				  	debuginfo.renderCount++;
-				    return render(e, includes).then(function(html) {
-				      includes[e.id] = html;
-				      return includes;
-				    });
-				  });
+					return soFar.then(function(includes) {
+						debuginfo.renderCount++;
+						return render(e, includes).then(function(html) {
+							includes[e.id] = html;
+							return includes;
+						});
+					});
 				}, q(includes));
 
 				return promise;
