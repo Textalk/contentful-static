@@ -271,8 +271,11 @@ module.exports = (function() {
 								return JSON.stringify(obj, undefined, 2);
 							},
 							include: function(obj) {
+								if(obj == undefined) {
+									debug('error: undefined object');
+									return false;
+								}
 								checkExistance(obj.sys, 'index.js:262');
-								if(obj == undefined) debug('error: undefined object');
 								if (Array.isArray(obj)) {
 									return obj.map(function(e) {
 										if (e && e.sys) {
