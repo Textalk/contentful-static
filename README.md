@@ -50,7 +50,7 @@ var contentfulStatic = require('contentful-static');
 ```js
 contentfulStatic.config({
     // Path to templates.
-    templates: 'templates'
+    templates: 'templates',
     // Your Contentful space ID
     space: 'my12space34id',
     // Contentful Access Token
