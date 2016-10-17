@@ -11,7 +11,7 @@
   "dependencies": {
     "chalk": "^1.1.1",
     "consolidate": "^0.13.1",
-    "contentful": "^1.1.5",
+    "contentful": "^3.6.4",
     "merge": "^1.2.0",
     "mkdirp": "^0.5.1",
     "nunjucks": "^2.0.0",
