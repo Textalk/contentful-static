@@ -55,11 +55,11 @@ module.exports = (function() {
 			host: 'cdn.contentful.com'
 		},
 		context: {
-			// context variables to pass into template rendering
+			// context variables to pass into template rendering 
 		}
 	};
 
-	var writeToFile = function() {
+	var writeToFile = function() { 
 		var deferred = q.defer();
 		var filename = options.dest;
 		var filepath = process.cwd() + '/' + filename;
@@ -112,15 +112,18 @@ module.exports = (function() {
 				space: {}
 			};
 
+			var skips = {};
+
 			var getEntries = function(locale, skip){ 
-				//TODO: incremental skip-parameter
-				return client.entries({ locale:locale.code, limit:1000, skip:skip ? 1000 : 0, order:'sys.createdAt' });
+				console.log(skip);
+				return client.entries({ locale:locale.code, limit:1000, skip:skip, order:'sys.createdAt' });
 			};
 
 			var fetchAll = function(locale, acc){ 
 				return function(result){ 
 					if (result.length == 1000){ 
-						return getEntries(locale, true).then(fetchAll(locale, acc.concat(result)));
+						skips[locale.code] += 1000;
+						return getEntries(locale, skips[locale.code]).then(fetchAll(locale, acc.concat(result)));
 					} else { 
 						db.entries[locale.code] = acc.concat(result);
 						return acc.concat(result);
@@ -139,7 +142,8 @@ module.exports = (function() {
 				db.space = space;
 
 				return q.all(db.space.locales.map(function(locale) { 
-					return getEntries(locale).then( fetchAll( locale, [] ) );
+					skips[locale.code] = 0;
+					return getEntries(locale, skips[locale.code]).then( fetchAll( locale, [] ) );
 				})).then(function(result) {
 					return db;
 				});
