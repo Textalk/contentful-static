@@ -1,5 +1,5 @@
 var
-	contentful = require('contentful');
+	contentful = require('contentful'),
 	fs = require('fs'),
 	mkdirp = require('mkdirp'),
 	q = require('q'),
@@ -102,14 +102,30 @@ module.exports = (function() {
 		 * @param {Function} callback (optional) a callback function(err, content)
 		 * @return {Promise} a promise that resolves to the content.
 		 */
-		sync: function(callback) {
+		sync: function(callback){ 
 
 			var client = contentful.createClient(options.apiconfig);
 
-			var db = {
-				contentTypes: [],
-				entries: {},
+			var db = { 
+				contentTypes: [], 
+				entries: {}, 
 				space: {}
+			};
+
+			var getEntries = function(locale, skip){ 
+				//TODO: incremental skip-parameter
+				return client.entries({ locale:locale.code, limit:1000, skip:skip ? 1000 : 0, order:'sys.createdAt' });
+			};
+
+			var fetchAll = function(locale, acc){ 
+				return function(result){ 
+					if (result.length == 1000){ 
+						return getEntries(locale, true).then(fetchAll(locale, acc.concat(result)));
+					} else { 
+						db.entries[locale.code] = acc.concat(result);
+						return acc.concat(result);
+					}
+				}
 			};
 
 			var promise = q.all([
@@ -119,25 +135,16 @@ module.exports = (function() {
 				var contentTypes = response[0];
 				var space = response[1];
 
-				db.space = space;
 				db.contentTypes = contentTypes;
+				db.space = space;
 
-				// Loop over all locales and fetch them one at a time
-				// FIXME: Option for exactly which I like to fetch.
-				var queries = [];
-				space.locales.forEach(function(locale) {
-					// TODO: get unlimited entries by iterating calls. Max entries limit per call is 1000.
-					queries.push(client.entries({ locale: locale.code, limit: 1000}));
-				});
-
-				return q.all(queries).then( function(response) {
-					space.locales.forEach(function(locale, index) {
-						var entries = response[index];
-						db.entries[locale.code] = entries;
-					});
-
+				return q.all(db.space.locales.map(function(locale) { 
+					return getEntries(locale).then( fetchAll( locale, [] ) );
+				})).then(function(result) {
 					return db;
 				});
+			}).catch(function(error){
+				console.log(error);
 			});
 
 			if (callback) {
@@ -162,8 +169,7 @@ module.exports = (function() {
 
 			// expose consolidate to allow for a custom setup
 			console.log('[contentfulStatic.render] Calling "before" callback...');
-			if(before != undefined) before(consolidate, content);
-
+			if (before != undefined) before(consolidate, content);
 
 			// Massage the data for some easy lookup
 			var contentTypes = {};
@@ -172,7 +178,6 @@ module.exports = (function() {
 				types[ct.sys.id] = ct;
 				return types;
 			}, contentTypes);
-
 
 			// FIXME: Only specified locale.
 			var renderPromise = q.all(content.space.locales.map(function(locale) {
