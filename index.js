@@ -115,7 +115,6 @@ module.exports = (function() {
 			var skips = {};
 
 			var getEntries = function(locale, skip){ 
-				console.log(skip);
 				return client.entries({ locale:locale.code, limit:1000, skip:skip, order:'sys.createdAt' });
 			};
 
