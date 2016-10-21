@@ -7,7 +7,7 @@ A CLI tool to generate a site from templates + data from a contentful space
 
 To build a site from a space using the templates in `templatesFolder`
 ```sh
-contentful-static -a yourAccessToken yourSpaceId templatesFolder/ dest/
+contentful-static -a yourContentDeliveryApiAccessToken yourSpaceId templatesFolder/ dest/
 ```
 
 ## Template building
@@ -53,7 +53,7 @@ contentfulStatic.config({
     templates: 'templates',
     // Your Contentful space ID
     space: 'my12space34id',
-    // Contentful Access Token
+    // Contentful Content Delivery API Access Token
     accessToken: '5fdae8a3myacc3sst0ken573962'
 });
 ```
