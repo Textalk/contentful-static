@@ -8,6 +8,7 @@
   },
   "author": "Erik Edhagen <erikedhagen@gmail.com>",
   "license": "ISC",
+  "bin": "./bin/contentful-static.js",
   "dependencies": {
     "chalk": "^1.1.1",
     "consolidate": "^0.13.1",
